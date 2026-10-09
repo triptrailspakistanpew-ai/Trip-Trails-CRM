@@ -1,0 +1,38 @@
+import { PrismaClient, Prisma } from "@prisma/client";
+
+export { Prisma, PrismaClient };
+
+export type Agency = Prisma.AgencyGetPayload<{}>;
+export type Branch = Prisma.BranchGetPayload<{}>;
+export type User = Prisma.UserGetPayload<{}>;
+export type UserRole = string;
+export type UserStatus = string;
+export type Role = Prisma.RoleGetPayload<{}>;
+export type Lead = Prisma.LeadGetPayload<{}>;
+export type LeadActivity = Prisma.LeadActivityGetPayload<{}>;
+export type Customer = Prisma.CustomerGetPayload<{}>;
+export type CustomerNote = Prisma.CustomerNoteGetPayload<{}>;
+export type CustomerDocument = Prisma.CustomerDocumentGetPayload<{}>;
+export type Booking = Prisma.BookingGetPayload<{}>;
+export type Supplier = Prisma.SupplierGetPayload<{}>;
+export type Expense = Prisma.ExpenseGetPayload<{}>;
+export type RecentActivity = Prisma.RecentActivityGetPayload<{}>;
+export type CustomerPayment = Prisma.CustomerPaymentGetPayload<{}>;
+export type PaymentAllocation = Prisma.PaymentAllocationGetPayload<{}>;
+export type SupplierPaymentAllocation = Prisma.SupplierPaymentAllocationGetPayload<{}>;
+export type BookingDocument = Prisma.BookingDocumentGetPayload<{}>;
+export type Notification = Prisma.NotificationGetPayload<{}>;
+export type Invoice = Prisma.InvoiceGetPayload<{}>;
+export type CreditNote = Prisma.CreditNoteGetPayload<{}>;
+export type TokenBlacklist = Prisma.TokenBlacklistGetPayload<{}>;
+export type Quotation = Prisma.QuotationGetPayload<{}>;
+export type QuotationItem = Prisma.QuotationItemGetPayload<{}>;
+export type QuotationTax = Prisma.QuotationTaxGetPayload<{}>;
+export type QuotationAttachment = Prisma.QuotationAttachmentGetPayload<{}>;
+export type QuotationVersion = Prisma.QuotationVersionGetPayload<{}>;
+export type BookingActivity = Prisma.BookingActivityGetPayload<{}>;
+export type PaymentSchedule = Prisma.PaymentScheduleGetPayload<{}>;
+export type PaymentScheduleItem = Prisma.PaymentScheduleItemGetPayload<{}>;
+export type JournalEntry = Prisma.JournalEntryGetPayload<{}>;
+export type JournalLine = Prisma.JournalLineGetPayload<{}>;
+export type ChartOfAccount = Prisma.ChartOfAccountGetPayload<{}>;

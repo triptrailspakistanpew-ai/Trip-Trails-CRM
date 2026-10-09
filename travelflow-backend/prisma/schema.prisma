@@ -1,0 +1,1342 @@
+// Prisma Schema for TravelFlow
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ENUMS FOR FINANCIALS & DOMAIN
+// ==========================================
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum AmortizationFrequency {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+enum AmortizationStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AmortizationItemStatus {
+  PENDING
+  POSTED
+}
+
+// ==========================================
+// CORE / SYSTEM MODELS
+// ==========================================
+
+model Agency {
+  id             String  @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String  @unique
+  code           String
+  contactEmail   String
+  contactPhone   String
+  address        String?
+  city           String
+  country        String  @default("Pakistan")
+  currency       String  @default("PKR")
+  registrationNo String?
+  logoUrl        String?
+  primaryColor   String  @default("#000000")
+
+  // Embedded Notification Settings from Mongoose
+  emailAlerts  Boolean @default(true)
+  smsAlerts    Boolean @default(false)
+  dailyReports Boolean @default(true)
+
+  status    String    @default("active") // active, suspended, inactive
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  branches                   Branch[]
+  users                      User[]
+  roles                      Role[]
+  leads                      Lead[]
+  leadActivities             LeadActivity[]
+  customers                  Customer[]
+  customerNotes              CustomerNote[]
+  customerDocuments          CustomerDocument[]
+  suppliers                  Supplier[]
+  supplierPayments           SupplierPayment[]
+  bookings                   Booking[]
+  bookingServices            BookingService[]
+  bookingTravelers           BookingTraveler[]
+  bookingDocuments           BookingDocument[]
+  bookingActivities          BookingActivity[]
+  expenses                   Expense[]
+  customerPayments           CustomerPayment[]
+  paymentAllocations         PaymentAllocation[]
+  supplierPaymentAllocations SupplierPaymentAllocation[]
+  paymentSchedules           PaymentSchedule[]
+  paymentScheduleItems       PaymentScheduleItem[]
+  invoices                   Invoice[]
+  invoiceLines               InvoiceLine[]
+  creditNotes                CreditNote[]
+  quotations                 Quotation[]
+  quotationItems             QuotationItem[]
+  quotationTaxes             QuotationTax[]
+  quotationAttachments       QuotationAttachment[]
+  quotationVersions          QuotationVersion[]
+  templates                  Template[]
+  notifications              Notification[]
+  recentActivities           RecentActivity[]
+  chartOfAccounts            ChartOfAccount[]
+  fiscalPeriods              FiscalPeriod[]
+  journalEntries             JournalEntry[]
+  journalLines               JournalLine[]
+  amortizationSchedules      AmortizationSchedule[]
+
+  @@index([status])
+  @@index([isDeleted])
+}
+
+model Branch {
+  id           String    @id @default(uuid()) @db.Uuid
+  agencyId     String    @db.Uuid
+  name         String
+  code         String
+  city         String
+  address      String?
+  phone        String?
+  currency     String?   @default("PKR")
+  isHeadOffice Boolean   @default(false)
+  status       String    @default("active") // active, inactive
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency           Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users            User[]
+  leads            Lead[]
+  customers        Customer[]
+  bookings         Booking[]
+  expenses         Expense[]
+  customerPayments CustomerPayment[]
+  invoices         Invoice[]
+  creditNotes      CreditNote[]
+  quotations       Quotation[]
+  notifications    Notification[]
+  recentActivities RecentActivity[]
+  supplierPayments SupplierPayment[]
+  journalEntries   JournalEntry[]
+  suppliers        Supplier[]
+  chartOfAccounts  ChartOfAccount[]
+
+  @@unique([agencyId, code])
+  @@index([agencyId])
+  @@index([agencyId, isDeleted])
+}
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  agencyId    String    @db.Uuid
+  branchId    String    @db.Uuid
+  firstName   String
+  lastName    String
+  email       String
+  password    String
+  phone       String?
+  role        String
+  status      String    @default("active") // active, inactive, invited
+  avatarUrl   String?
+  lastLoginAt DateTime?
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency                   Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch                   Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  assignedLeads            Lead[]             @relation("AssignedAgent")
+  agentBookings            Booking[]          @relation("AgentBookings")
+  recordedExpenses         Expense[]          @relation("RecordedExpenses")
+  consultantQuotations     Quotation[]        @relation("ConsultantQuotations")
+  createdVersions          QuotationVersion[] @relation("CreatedVersions")
+  notifications            Notification[]     @relation("RecipientNotifications")
+  recentActivities         RecentActivity[]   @relation("CreatedActivities")
+  recordedPayments         SupplierPayment[]  @relation("RecordedSupplierPayments")
+  recordedCustomerPayments CustomerPayment[]  @relation("RecordedCustomerPayments")
+  createdJournals          JournalEntry[]     @relation("CreatedJournals")
+
+  @@unique([agencyId, email])
+  @@index([agencyId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, isDeleted])
+  // Phase 8 performance indexes
+  @@index([agencyId, isDeleted, role])
+}
+
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  agencyId    String    @db.Uuid
+  name        String
+  description String    @default("")
+  permissions String[]
+  color       String
+  textColor   String
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, name])
+  @@index([agencyId, isDeleted])
+}
+
+model TokenBlacklist {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model Counter {
+  id        String   @id // Key e.g. BK_{agencyId}_{year}
+  seq       Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model IdMapping {
+  collection String
+  oldId      String
+  newId      String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  @@id([collection, oldId])
+  @@index([collection])
+  @@index([newId])
+}
+
+// ==========================================
+// CRM / SALES MODELS
+// ==========================================
+
+model Lead {
+  id                  String    @id @default(uuid()) @db.Uuid
+  agencyId            String    @db.Uuid
+  branchId            String    @db.Uuid
+  leadRef             String
+  name                String
+  phone               String
+  whatsapp            String?
+  email               String?
+  destination         String
+  travelDate          DateTime?
+  budget              Float?
+  adults              Int       @default(1)
+  children            Int       @default(0)
+  specialRequirements String?
+  source              String
+  status              String    @default("new")
+  assignedAgentId     String?   @db.Uuid
+  customerId          String?   @db.Uuid
+  notes               String?
+  lastContactedAt     DateTime?
+  isDeleted           Boolean   @default(false)
+  deletedAt           DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency        Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  assignedAgent User?          @relation("AssignedAgent", fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  customer      Customer?      @relation("LeadCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  activities    LeadActivity[]
+  bookings      Booking[]
+  quotations    Quotation[]
+
+  @@unique([agencyId, leadRef])
+  @@index([agencyId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, status])
+  @@index([agencyId, isDeleted])
+  // Phase 8 performance indexes
+  @@index([agencyId, isDeleted, createdAt(sort: Desc)])
+}
+
+model LeadActivity {
+  id          String  @id @default(uuid()) @db.Uuid
+  agencyId    String  @db.Uuid
+  leadId      String  @db.Uuid
+  type        String
+  description String
+  outcome     String?
+  createdBy   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, leadId])
+  // Phase 8 performance indexes
+  @@index([leadId, createdAt(sort: Desc)])
+}
+
+model Customer {
+  id                    String    @id @default(uuid()) @db.Uuid
+  agencyId              String    @db.Uuid
+  branchId              String    @db.Uuid
+  customerRef           String
+  type                  String // individual, corporate
+  firstName             String
+  lastName              String
+  companyName           String?
+  businessType          String?
+  taxNumber             String?
+  email                 String?
+  phone                 String
+  whatsapp              String?
+  dateOfBirth           DateTime?
+  gender                String?
+  cnic                  String?
+  passportNumber        String?
+  passportExpiry        DateTime?
+  nationality           String?
+  address               String?
+  city                  String?
+  country               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  internalNotes         String?
+  status                String    @default("active") // active, inactive
+  isDeleted             Boolean   @default(false)
+  deletedAt             DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency           Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch           Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  notes            CustomerNote[]
+  documents        CustomerDocument[]
+  leads            Lead[]             @relation("LeadCustomer")
+  bookings         Booking[]
+  customerPayments CustomerPayment[]
+  invoices         Invoice[]
+  creditNotes      CreditNote[]
+  quotations       Quotation[]
+
+  @@unique([agencyId, customerRef])
+  @@index([agencyId])
+  @@index([agencyId, phone])
+  @@index([agencyId, isDeleted])
+}
+
+model CustomerNote {
+  id         String @id @default(uuid()) @db.Uuid
+  agencyId   String @db.Uuid
+  customerId String @db.Uuid
+  note       String
+  addedBy    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency   Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, customerId])
+}
+
+model CustomerDocument {
+  id           String  @id @default(uuid()) @db.Uuid
+  agencyId     String  @db.Uuid
+  customerId   String  @db.Uuid
+  documentType String
+  fileName     String
+  fileSize     Int
+  mimeType     String
+  fileUrl      String
+  notes        String?
+  uploadedBy   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency   Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, customerId])
+}
+
+// ==========================================
+// SUPPLIERS & OPERATIONS
+// ==========================================
+
+model Supplier {
+  id            String    @id @default(uuid()) @db.Uuid
+  agencyId      String    @db.Uuid
+  branchId      String    @db.Uuid
+  name          String
+  category      String
+  contactPerson String?
+  email         String?
+  phone         String?
+  website       String?
+  address       String?
+  city          String?
+  country       String?
+  taxId         String?
+  balance       Float
+  status        String    @default("active") // active, inactive
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency   Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch   Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  services       BookingService[]
+  payments       SupplierPayment[]
+  quotationItems QuotationItem[]
+  expenses       Expense[]        @relation("ExpenseSupplier")
+
+  @@unique([agencyId, branchId, name])
+  @@index([agencyId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, isDeleted])
+}
+
+model SupplierPayment {
+  id            String    @id @default(uuid()) @db.Uuid
+  agencyId      String    @db.Uuid
+  branchId      String?   @db.Uuid
+  supplierId    String    @db.Uuid
+  paymentRef    String
+  amount        Float
+  currency      String    @default("PKR")
+  exchangeRate  Float     @default(1)
+  paymentMethod String
+  notes         String?
+  date          DateTime  @default(now())
+  recordedById  String?   @db.Uuid
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency      Agency                      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch      Branch?                     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  supplier    Supplier                    @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  recordedBy  User?                       @relation("RecordedSupplierPayments", fields: [recordedById], references: [id], onDelete: SetNull)
+  allocations SupplierPaymentAllocation[]
+
+  @@unique([agencyId, paymentRef])
+  @@index([agencyId, supplierId])
+  @@index([agencyId, isDeleted])
+}
+
+model Booking {
+  id                 String    @id @default(uuid()) @db.Uuid
+  agencyId           String    @db.Uuid
+  bookingRef         String
+  customerId         String    @db.Uuid
+  branchId           String    @db.Uuid
+  agentId            String    @db.Uuid
+  leadId             String?   @db.Uuid
+  sourceQuotationId  String?   @db.Uuid
+  sourceType         String    @default("manual")
+  title              String    @default("")
+  departureDate      DateTime
+  returnDate         DateTime?
+  expectedAdults     Int       @default(1)
+  expectedChildren   Int       @default(0)
+  currency           String    @default("PKR")
+  exchangeRate       Float     @default(1)
+  expectedInfants    Int       @default(0)
+  bookingStatus      String    @default("confirmed")
+  paymentStatus      String    @default("unpaid")
+  notes              String?
+  terms              String?
+  termsTemplateId    String?   @db.Uuid
+  isDeleted          Boolean   @default(false)
+  deletedAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency                     Agency                      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  customer                   Customer                    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  branch                     Branch                      @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  agent                      User                        @relation("AgentBookings", fields: [agentId], references: [id], onDelete: Cascade)
+  lead                       Lead?                       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  sourceQuotation            Quotation?                  @relation("BookingSourceQuotation", fields: [sourceQuotationId], references: [id], onDelete: SetNull)
+  termsTemplate              Template?                   @relation("BookingTermsTemplate", fields: [termsTemplateId], references: [id], onDelete: SetNull)
+  services                   BookingService[]
+  travelers                  BookingTraveler[]
+  documents                  BookingDocument[]
+  activities                 BookingActivity[]
+  invoices                   Invoice[]
+  creditNotes                CreditNote[]
+  customerPayments           CustomerPayment[]
+  paymentAllocations         PaymentAllocation[]
+  supplierPaymentAllocations SupplierPaymentAllocation[]
+  paymentSchedules           PaymentSchedule[]
+
+  @@unique([agencyId, bookingRef])
+  @@index([agencyId])
+  @@index([agencyId, customerId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, bookingStatus])
+  @@index([agencyId, paymentStatus])
+  @@index([agencyId, agentId])
+  @@index([agencyId, isDeleted])
+  // Phase 8 performance indexes
+  @@index([agencyId, isDeleted, createdAt(sort: Desc)])
+  @@index([agencyId, isDeleted, customerId, createdAt])
+  @@index([agencyId, isDeleted, branchId, createdAt])
+}
+
+model PaymentSchedule {
+  id          String    @id @default(uuid()) @db.Uuid
+  agencyId    String    @db.Uuid
+  bookingId   String    @db.Uuid
+  title       String
+  totalAmount Float
+  status      String    @default("active") // active, completed, cancelled
+  notes       String?
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency  Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  booking Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  items   PaymentScheduleItem[]
+
+  @@index([agencyId, bookingId])
+  @@index([agencyId, isDeleted])
+}
+
+model PaymentScheduleItem {
+  id                String    @id @default(uuid()) @db.Uuid
+  agencyId          String    @db.Uuid
+  scheduleId        String    @db.Uuid
+  label             String
+  amount            Float
+  dueDate           DateTime
+  status            String    @default("pending") // pending, paid, overdue, cancelled
+  paidAt            DateTime?
+  customerPaymentId String?   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency          Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  schedule        PaymentSchedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  customerPayment CustomerPayment? @relation(fields: [customerPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, scheduleId])
+  @@index([agencyId, status])
+}
+
+model BookingService {
+  id                    String    @id @default(uuid()) @db.Uuid
+  agencyId              String    @db.Uuid
+  bookingId             String    @db.Uuid
+  serviceCategory       String // flight, hotel, transfer, insurance, visa, safari, cruise, activity, other
+  title                 String
+  description           String?
+  supplierId            String?   @db.Uuid
+  currency              String    @default("PKR")
+  exchangeRate          Float     @default(1)
+
+  // --- Financial Fields (Phase 3) ---
+  costPrice             Float     @default(0) // Estimated supplier cost (from quotation/planning)
+  supplierInvoiceAmount Float? // Actual supplier cost (null until confirmed/invoiced)
+  sellingPrice          Float     @default(0) // What we charge the customer (before tax)
+
+  // Tax Treatment Snapshot — stored per-service for historical accuracy
+  taxTreatment          String    @default("VAT_ON_MARGIN") // VAT_ON_MARGIN, VAT_ON_SELLING_PRICE, ZERO_RATED, EXEMPT, NO_VAT
+  vatRate               Float     @default(0) // Tax rate percentage (e.g. 5 for 5%)
+  taxBase               Float     @default(0) // Backend-calculated: the base amount tax is calculated on
+  taxAmount             Float     @default(0) // Backend-calculated: actual tax amount
+
+  // Backend-derived financial snapshots
+  expectedMargin        Float     @default(0) // sellingPrice - costPrice
+  actualMargin          Float? // sellingPrice - supplierInvoiceAmount (null until actual cost known)
+  costVariance          Float? // supplierInvoiceAmount - costPrice (null until actual cost known)
+  customerTotal         Float     @default(0) // sellingPrice + taxAmount (what customer pays for this service)
+
+  // --- Import / Reconciliation Fields ---
+  supplierRef           String?   // External supplier reference (e.g. SUP-TVA-0001)
+  supplierRefund        Float     @default(0) // Refund received from supplier
+  customerRefund        Float     @default(0) // Refund paid to customer
+  reconciliationStatus  String?   // MATCHED_STAGE_A, REVIEW_COST_NOT_FOUND, etc.
+
+  // Service Financial Status
+  financialStatus       String    @default("draft") // draft, confirmed, invoiced, settled, cancelled
+
+  quantity              Int       @default(1)
+  unit                  String    @default("Person")
+  status                String    @default("pending") // pending, confirmed, completed, cancelled
+  serviceDetails        Json? // service-specific data (flight: airline/pnr/ticket, hotel: check-in/out, etc.)
+  sortOrder             Int       @default(0)
+  isDeleted             Boolean   @default(false)
+  deletedAt             DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency                     Agency                      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  booking                    Booking                     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  supplier                   Supplier?                   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplierPaymentAllocations SupplierPaymentAllocation[]
+
+  @@index([agencyId, bookingId])
+  @@index([agencyId, serviceCategory])
+  @@index([agencyId, isDeleted])
+  @@index([agencyId, supplierId, isDeleted])
+  @@index([agencyId, supplierId, supplierInvoiceAmount])
+}
+
+model BookingTraveler {
+  id             String    @id @default(uuid()) @db.Uuid
+  agencyId       String    @db.Uuid
+  bookingId      String    @db.Uuid
+  firstName      String
+  lastName       String
+  type           String    @default("adult") // adult, child, infant
+  passportNumber String?
+  nationality    String?
+  dateOfBirth    DateTime?
+  gender         String?
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency  Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, bookingId])
+  @@index([agencyId, isDeleted])
+}
+
+model BookingDocument {
+  id         String @id @default(uuid()) @db.Uuid
+  agencyId   String @db.Uuid
+  bookingId  String @db.Uuid
+  name       String
+  url        String
+  type       String
+  uploadedBy String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency  Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, bookingId])
+}
+
+model BookingActivity {
+  id          String @id @default(uuid()) @db.Uuid
+  agencyId    String @db.Uuid
+  bookingId   String @db.Uuid
+  type        String
+  title       String
+  description String
+  createdBy   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency  Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, bookingId, createdAt])
+}
+
+model Expense {
+  id            String    @id @default(uuid()) @db.Uuid
+  agencyId      String    @db.Uuid
+  branchId      String    @db.Uuid
+  expenseRef    String
+  title         String
+  category      String
+  amount        Float
+  currency      String    @default("PKR")
+  exchangeRate  Float     @default(1)
+  date          DateTime
+  paidTo        String?
+  paymentMethod String
+  receiptUrl    String?
+  notes         String?
+  recordedById  String    @db.Uuid
+  status        String    @default("approved") // approved, pending, rejected
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+  accountId        String?    @db.Uuid 
+  paymentAccountId String?    @db.Uuid
+
+  // --- VAT & Supplier Fields (Bulk Import) ---
+  supplierId       String?    @db.Uuid
+  supplierRef      String?    // External supplier reference (e.g. SUP-TEL-0001)
+  vatTreatment     String?    @default("NONE") // RECOVERABLE, NON_RECOVERABLE, EXEMPT, NONE
+  vatRate          Float?     @default(5)
+  inputVat         Float?     @default(0) // Input VAT amount (5/105 for UAE)
+  netAmount        Float?     @default(0) // Gross amount minus input VAT
+  refundReceived   Float?     @default(0) // Refund received from supplier
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency     Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch     Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  recordedBy User   @relation("RecordedExpenses", fields: [recordedById], references: [id], onDelete: Cascade)
+  account        ChartOfAccount? @relation("ExpenseAccount", fields: [accountId], references: [id], onDelete: SetNull)
+  paymentAccount ChartOfAccount? @relation("ExpensePaymentAccount", fields: [paymentAccountId], references: [id], onDelete: SetNull)
+  supplier       Supplier?       @relation("ExpenseSupplier", fields: [supplierId], references: [id], onDelete: SetNull)
+
+  amortizationSchedule AmortizationSchedule?
+
+  @@unique([agencyId, expenseRef])
+  @@index([agencyId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, isDeleted])
+  // Phase 8 performance indexes
+  @@index([agencyId, isDeleted, date(sort: Desc)])
+}
+
+model CustomerPayment {
+  id            String    @id @default(uuid()) @db.Uuid
+  agencyId      String    @db.Uuid
+  branchId      String?   @db.Uuid
+  paymentRef    String
+  customerId    String    @db.Uuid
+  bookingId     String?   @db.Uuid // convenience FK — optional, payments belong to customer
+  amount        Float
+  currency      String    @default("PKR")
+  exchangeRate  Float     @default(1)
+  paymentMethod String
+  status        String    @default("completed") // pending, completed, reversed
+  notes         String?
+  date          DateTime  @default(now())
+  recordedById  String?   @db.Uuid
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency        Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch        Branch?               @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  customer      Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  booking       Booking?              @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  recordedBy    User?                 @relation("RecordedCustomerPayments", fields: [recordedById], references: [id], onDelete: SetNull)
+  allocations   PaymentAllocation[]
+  scheduleItems PaymentScheduleItem[]
+
+  @@unique([agencyId, paymentRef])
+  @@index([agencyId])
+  @@index([agencyId, customerId])
+  @@index([agencyId, bookingId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, isDeleted])
+  @@index([agencyId, isDeleted, createdAt(sort: Desc)])
+  @@index([agencyId, isDeleted, customerId, date])
+}
+
+model PaymentAllocation {
+  id                String @id @default(uuid()) @db.Uuid
+  agencyId          String @db.Uuid
+  customerPaymentId String @db.Uuid
+  bookingId         String @db.Uuid
+  amount            Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency          Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  customerPayment CustomerPayment @relation(fields: [customerPaymentId], references: [id], onDelete: Cascade)
+  booking         Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, customerPaymentId])
+  @@index([agencyId, bookingId])
+}
+
+model SupplierPaymentAllocation {
+  id                String  @id @default(uuid()) @db.Uuid
+  agencyId          String  @db.Uuid
+  supplierPaymentId String  @db.Uuid
+  bookingId         String  @db.Uuid
+  bookingServiceId  String? @db.Uuid
+  amount            Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency          Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  supplierPayment SupplierPayment @relation(fields: [supplierPaymentId], references: [id], onDelete: Cascade)
+  booking         Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingService  BookingService? @relation(fields: [bookingServiceId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, supplierPaymentId])
+  @@index([agencyId, bookingId])
+}
+
+// ==========================================
+// BILLING & QUOTATIONS
+// ==========================================
+
+model Invoice {
+  id         String    @id @default(uuid()) @db.Uuid
+  agencyId   String    @db.Uuid
+  branchId   String?   @db.Uuid
+  invoiceRef String
+  bookingId  String?   @db.Uuid
+  customerId String    @db.Uuid
+  currency   String    @default("PKR")
+  exchangeRate Float   @default(1)
+  subtotal   Float
+  tax        Float
+  total      Float
+  status     String    @default("draft") // draft, sent, paid, overdue, cancelled
+  dueDate    DateTime?
+  paidAt     DateTime?
+  notes      String?
+  terms      String?
+  isDeleted  Boolean   @default(false)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency      Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch      Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  booking     Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items       InvoiceLine[]
+  creditNotes CreditNote[]
+
+  @@unique([agencyId, invoiceRef])
+  @@index([agencyId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, customerId])
+  @@index([agencyId, isDeleted])
+  // Phase 8 performance indexes
+  @@index([agencyId, isDeleted, createdAt(sort: Desc)])
+}
+
+model InvoiceLine {
+  id          String @id @default(uuid()) @db.Uuid
+  agencyId    String @db.Uuid
+  invoiceId   String @db.Uuid
+  description String
+  quantity    Int    @default(1)
+  unitPrice   Float
+  amount      Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency  Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, invoiceId])
+}
+
+model CreditNote {
+  id            String    @id @default(uuid()) @db.Uuid
+  agencyId      String    @db.Uuid
+  branchId      String?   @db.Uuid
+  creditNoteRef String
+  invoiceId     String    @db.Uuid
+  customerId    String    @db.Uuid
+  bookingId     String?   @db.Uuid
+  amount        Float
+  reason        String
+  status        String    @default("issued") // issued, applied, cancelled
+  issuedAt      DateTime  @default(now())
+  appliedAt     DateTime?
+  notes         String?
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency   Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  booking  Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@unique([agencyId, creditNoteRef])
+  @@index([agencyId])
+  @@index([agencyId, invoiceId])
+  @@index([agencyId, customerId])
+  @@index([agencyId, isDeleted])
+  @@index([agencyId, isDeleted, createdAt(sort: Desc)])
+}
+
+model Quotation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  agencyId            String    @db.Uuid
+  quotationNumber     String
+  title               String
+  leadId              String?   @db.Uuid
+  customerId          String?   @db.Uuid
+  branchId            String    @db.Uuid
+  consultantId        String    @db.Uuid
+  travelType          String
+  destination         String
+  departureDate       DateTime?
+  returnDate          DateTime?
+  adults              Int       @default(0)
+  children            Int       @default(0)
+  infants             Int       @default(0)
+  currency            String    @default("PKR")
+  subtotal            Float
+  agencyFee           Float
+  discount            Float
+  taxTotal            Float
+  total               Float
+  estimatedProfit     Float
+  status              String    @default("draft") // draft, sent, negotiation, accepted, rejected, expired, cancelled
+  validUntil          DateTime?
+  customerNotes       String?
+  internalNotes       String?
+  customerName        String?
+  customerPhone       String?
+  customerEmail       String?
+  termsTemplateId     String?   @db.Uuid
+  terms               String?
+  authorizedSignature String?
+  isDeleted           Boolean   @default(false)
+  deletedAt           DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency        Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  lead          Lead?                 @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  customer      Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  branch        Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  consultant    User                  @relation("ConsultantQuotations", fields: [consultantId], references: [id], onDelete: Cascade)
+  termsTemplate Template?             @relation(fields: [termsTemplateId], references: [id], onDelete: SetNull)
+  items         QuotationItem[]
+  taxes         QuotationTax[]
+  attachments   QuotationAttachment[]
+  versions      QuotationVersion[]
+  bookings      Booking[]             @relation("BookingSourceQuotation")
+
+  @@unique([agencyId, quotationNumber])
+  @@index([agencyId])
+  @@index([agencyId, branchId])
+  @@index([agencyId, isDeleted])
+  // Phase 8 performance indexes
+  @@index([agencyId, isDeleted, createdAt(sort: Desc)])
+}
+
+model QuotationItem {
+  id              String    @id @default(uuid()) @db.Uuid
+  agencyId        String    @db.Uuid
+  quotationId     String    @db.Uuid
+  serviceCategory String
+  title           String
+  description     String?
+  supplierId      String?   @db.Uuid
+  quantity        Int       @default(1)
+  unit            String    @default("Person")
+  costPrice       Float
+  sellingPrice    Float
+  total           Float
+  sortOrder       Int       @default(0)
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency    Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  supplier  Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([agencyId, quotationId])
+  @@index([agencyId, isDeleted])
+}
+
+model QuotationTax {
+  id          String    @id @default(uuid()) @db.Uuid
+  agencyId    String    @db.Uuid
+  quotationId String    @db.Uuid
+  taxName     String
+  taxType     String // percentage, fixed
+  taxValue    Float
+  taxAmount   Float
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency    Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, quotationId])
+  @@index([agencyId, isDeleted])
+}
+
+model QuotationAttachment {
+  id          String    @id @default(uuid()) @db.Uuid
+  agencyId    String    @db.Uuid
+  quotationId String    @db.Uuid
+  fileName    String
+  fileUrl     String
+  mimeType    String
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency    Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, quotationId])
+  @@index([agencyId, isDeleted])
+}
+
+model QuotationVersion {
+  id          String    @id @default(uuid()) @db.Uuid
+  agencyId    String    @db.Uuid
+  quotationId String    @db.Uuid
+  version     Int
+  changes     String
+  snapshot    Json?
+  createdBy   String    @db.Uuid
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency        Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  createdByUser User      @relation("CreatedVersions", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, quotationId, version])
+  @@index([agencyId, quotationId])
+  @@index([agencyId, isDeleted])
+}
+
+model Template {
+  id        String    @id @default(uuid()) @db.Uuid
+  agencyId  String    @db.Uuid
+  name      String
+  type      String // quotation_notes, quotation_terms, invoice_notes, invoice_terms
+  content   String
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency     Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  quotations Quotation[]
+  bookings   Booking[]   @relation("BookingTermsTemplate")
+
+  @@index([agencyId])
+  @@index([agencyId, isDeleted])
+}
+
+model Notification {
+  id          String  @id @default(uuid()) @db.Uuid
+  agencyId    String  @db.Uuid
+  branchId    String? @db.Uuid
+  recipientId String  @db.Uuid
+  type        String  @default("info") // info, success, warning, error
+  title       String
+  body        String
+  entityType  String? // lead, booking, receipt, customer, user, expense
+  entityId    String?
+  isRead      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency    Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch    Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  recipient User    @relation("RecipientNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, recipientId])
+  // Phase 8 performance indexes
+  @@index([agencyId, recipientId, isRead])
+}
+
+model RecentActivity {
+  id              String  @id @default(uuid()) @db.Uuid
+  agencyId        String  @db.Uuid
+  branchId        String? @db.Uuid
+  type            String
+  title           String
+  detail          String
+  createdBy       String
+  createdByUserId String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency        Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch        Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdByUser User?   @relation("CreatedActivities", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, createdAt])
+  @@index([agencyId, branchId, createdAt])
+}
+
+// ==========================================
+// FINANCIALS / GENERAL LEDGER (DOUBLE-ENTRY)
+// ==========================================
+
+model ChartOfAccount {
+  id              String        @id @default(uuid()) @db.Uuid
+  agencyId        String        @db.Uuid
+  branchId        String        @db.Uuid
+  code            String
+  name            String
+  type            AccountType
+  category        String?
+  parentAccountId String?       @db.Uuid
+  isSystem        Boolean       @default(false)
+  isActive        Boolean       @default(true)
+  normalBalance   NormalBalance
+  description     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency            Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch            Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  parentAccount     ChartOfAccount?  @relation("ChartOfAccountHierarchy", fields: [parentAccountId], references: [id], onDelete: Restrict)
+  subAccounts       ChartOfAccount[] @relation("ChartOfAccountHierarchy")
+  expenses          Expense[]        @relation("ExpenseAccount")
+  expensePayments   Expense[]        @relation("ExpensePaymentAccount")
+  journalLines      JournalLine[]
+  amortizationAssets   AmortizationSchedule[] @relation("AmortizationAssetAccount")
+  amortizationExpenses AmortizationSchedule[] @relation("AmortizationExpenseAccount")
+
+  @@unique([agencyId, branchId, code])
+  @@index([agencyId, branchId])
+  @@index([agencyId, type])
+  @@index([agencyId, isActive])
+  @@index([agencyId, isSystem])
+}
+
+model FiscalPeriod {
+  id        String       @id @default(uuid()) @db.Uuid
+  agencyId  String       @db.Uuid
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    PeriodStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, status])
+}
+
+model JournalEntry {
+  id               String             @id @default(uuid()) @db.Uuid
+  agencyId         String             @db.Uuid
+  branchId         String?            @db.Uuid
+  entryNumber      String
+  date             DateTime
+  reference        String?
+  description      String
+  status           JournalEntryStatus @default(DRAFT)
+  sourceModule     String? // INVOICE, RECEIPT, EXPENSE, SUPPLIER_PAYMENT, MANUAL
+  sourceId         String?
+  createdBy        String?            @db.Uuid
+  postedAt         DateTime?
+  reversedAt       DateTime?
+  reversingEntryId String?            @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency        Agency        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  branch        Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdByUser User?         @relation("CreatedJournals", fields: [createdBy], references: [id], onDelete: SetNull)
+  lines         JournalLine[]
+  amortizationItems AmortizationScheduleItem[]
+
+  @@unique([agencyId, entryNumber])
+  @@index([agencyId, date])
+  @@index([agencyId, status])
+  @@index([agencyId, branchId])
+}
+
+model JournalLine {
+  id             String  @id @default(uuid()) @db.Uuid
+  agencyId       String  @db.Uuid
+  journalEntryId String  @db.Uuid
+  accountId      String  @db.Uuid
+  debit          Float
+  credit         Float
+  currency       String  @default("PKR")
+  exchangeRate   Float
+  baseDebit      Float
+  baseCredit     Float
+  description    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  agency       Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  journalEntry JournalEntry   @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      ChartOfAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, journalEntryId])
+  @@index([agencyId, accountId])
+}
+
+// ==========================================
+// AMORTIZATION (Prepaid Expenses)
+// ==========================================
+
+model AmortizationSchedule {
+  id               String                @id @default(uuid()) @db.Uuid
+  agencyId         String                @db.Uuid
+  expenseId        String                @db.Uuid @unique
+  assetAccountId   String                @db.Uuid 
+  expenseAccountId String                @db.Uuid 
+  totalAmount      Decimal               @db.Decimal(12, 2)
+  recognizedAmount Decimal               @default(0) @db.Decimal(12, 2)
+  currency         String                @default("PKR")
+  startDate        DateTime
+  endDate          DateTime
+  frequency        AmortizationFrequency @default(MONTHLY)
+  status           AmortizationStatus    @default(ACTIVE)
+  
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  // Relations
+  agency           Agency                     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  expense          Expense                    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  assetAccount     ChartOfAccount             @relation("AmortizationAssetAccount", fields: [assetAccountId], references: [id], onDelete: Restrict)
+  expenseAccount   ChartOfAccount             @relation("AmortizationExpenseAccount", fields: [expenseAccountId], references: [id], onDelete: Restrict)
+  items            AmortizationScheduleItem[]
+
+  @@index([agencyId])
+  @@index([expenseId])
+}
+
+model AmortizationScheduleItem {
+  id             String                 @id @default(uuid()) @db.Uuid
+  scheduleId     String                 @db.Uuid
+  scheduledDate  DateTime
+  amount         Decimal                @db.Decimal(12, 2)
+  currency       String                 @default("PKR")
+  status         AmortizationItemStatus @default(PENDING)
+  journalEntryId String?                @db.Uuid
+
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  // Relations
+  schedule       AmortizationSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  journalEntry   JournalEntry?          @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([scheduleId, scheduledDate])
+  @@index([scheduleId])
+  @@index([status])
+}
+
