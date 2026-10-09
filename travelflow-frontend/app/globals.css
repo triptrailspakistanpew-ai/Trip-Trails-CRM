@@ -1,0 +1,500 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), var(--font-roboto), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-heading:
+    var(--font-ibm-plex-sans), var(--font-roboto), var(--font-inter), sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  --color-tf-primary: var(--tf-primary);
+  --color-tf-primary-hover: var(--tf-primary-hover);
+  --color-tf-primary-soft: var(--tf-primary-soft);
+  --color-tf-accent: var(--tf-accent);
+  --color-tf-accent-hover: var(--tf-accent-hover);
+  --color-tf-accent-soft: var(--tf-accent-soft);
+  --color-tf-success: var(--tf-success);
+  --color-tf-success-soft: var(--tf-success-soft);
+  --color-tf-warning: var(--tf-warning);
+  --color-tf-warning-soft: var(--tf-warning-soft);
+  --color-tf-danger: var(--tf-danger);
+  --color-tf-danger-soft: var(--tf-danger-soft);
+  --color-tf-info: var(--tf-info);
+  --color-tf-info-soft: var(--tf-info-soft);
+
+  --color-tf-card-blue: var(--tf-card-blue);
+  --color-tf-card-teal: var(--tf-card-teal);
+  --color-tf-card-amber: var(--tf-card-amber);
+  --color-tf-card-violet: var(--tf-card-violet);
+  --color-tf-card-slate: var(--tf-card-slate);
+  --color-tf-card-coral: var(--tf-card-coral);
+
+  --color-tf-bg: var(--tf-bg);
+  --color-tf-surface: var(--tf-surface);
+  --color-tf-surface-2: var(--tf-surface-2);
+  --color-tf-border: var(--tf-border);
+  --color-tf-border-strong: var(--tf-border-strong);
+
+  --color-tf-text-primary: var(--tf-text-primary);
+  --color-tf-text-secondary: var(--tf-text-secondary);
+  --color-tf-text-muted: var(--tf-text-muted);
+  --color-tf-text-inverse: var(--tf-text-inverse);
+
+  --color-tf-sidebar-bg: var(--tf-sidebar-bg);
+  --color-tf-sidebar-active: var(--tf-sidebar-active);
+  --color-tf-sidebar-text: var(--tf-sidebar-text);
+  --color-tf-sidebar-active-text: var(--tf-sidebar-active-text);
+  --color-tf-sidebar-accent: var(--tf-sidebar-accent);
+
+  --spacing-tf-sidebar: var(--tf-sidebar-width);
+  --spacing-tf-sidebar-collapsed: var(--tf-sidebar-collapsed-width);
+  --spacing-tf-topbar: var(--tf-topbar-height);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+}
+
+:root {
+  /* Shadcn Variables */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.147 0.004 49.3);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.147 0.004 49.3);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.147 0.004 49.3);
+  --primary: oklch(0.214 0.009 43.1);
+  --primary-foreground: oklch(0.986 0.002 67.8);
+  --secondary: oklch(0.96 0.002 17.2);
+  --secondary-foreground: oklch(0.214 0.009 43.1);
+  --muted: oklch(0.96 0.002 17.2);
+  --muted-foreground: oklch(0.547 0.021 43.1);
+  --accent: oklch(0.96 0.002 17.2);
+  --accent-foreground: oklch(0.214 0.009 43.1);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0.005 34.3);
+  --input: oklch(0.922 0.005 34.3);
+  --ring: oklch(0.714 0.014 41.2);
+  --chart-1: oklch(0.868 0.007 39.5);
+  --chart-2: oklch(0.547 0.021 43.1);
+  --chart-3: oklch(0.438 0.017 39.3);
+  --chart-4: oklch(0.367 0.016 35.7);
+  --chart-5: oklch(0.268 0.011 36.5);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.986 0.002 67.8);
+  --sidebar-foreground: oklch(0.147 0.004 49.3);
+  --sidebar-primary: oklch(0.214 0.009 43.1);
+  --sidebar-primary-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-accent: oklch(0.96 0.002 17.2);
+  --sidebar-accent-foreground: oklch(0.214 0.009 43.1);
+  --sidebar-border: oklch(0.922 0.005 34.3);
+  --sidebar-ring: oklch(0.714 0.014 41.2);
+
+  /* Trip Trails - LIGHT */
+
+  --tf-primary: #2f6b3b;
+  --tf-primary-hover: #255730;
+  --tf-primary-soft: #eef7f0;
+
+  --tf-accent: #c79b2d;
+  --tf-accent-hover: #ad8522;
+  --tf-accent-soft: #fff8e5;
+
+  --tf-success: #16a34a;
+  --tf-success-soft: #dcfce7;
+
+  --tf-warning: #d97706;
+  --tf-warning-soft: #fef3c7;
+
+  --tf-danger: #dc2626;
+  --tf-danger-soft: #fee2e2;
+
+  --tf-info: #2563eb;
+  --tf-info-soft: #dbeafe;
+
+  /* Cards */
+
+  --tf-card-blue: #eff6ff;
+  --tf-card-teal: #eef7f0;
+  --tf-card-amber: #fff8e8;
+  --tf-card-violet: #f5f3ff;
+  --tf-card-slate: #f8fafc;
+  --tf-card-coral: #fff1f2;
+
+  /* Surfaces */
+
+  --tf-bg: #f7f8f4;
+  --tf-surface: #ffffff;
+  --tf-surface-2: #f2f5ef;
+
+  --tf-border: #dde5dc;
+  --tf-border-strong: #c7d2c5;
+
+  /* Typography */
+
+  --tf-text-primary: #1b1f1c;
+  --tf-text-secondary: #4b5563;
+  --tf-text-muted: #6b7280;
+  --tf-text-inverse: #ffffff;
+
+  /* Sidebar */
+
+  --tf-sidebar-bg: #ffffff;
+  --tf-sidebar-active: #eef7f0;
+  --tf-sidebar-text: #4b5563;
+  --tf-sidebar-active-text: #2f6b3b;
+  --tf-sidebar-accent: #2f6b3b;
+
+  --tf-sidebar-width: 240px;
+  --tf-sidebar-collapsed-width: 64px;
+
+  --tf-topbar-height: 60px;
+  --tf-header-bg: #ffffff;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadow Scale */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  /* Animation Tokens */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Typography stacks (next/font variables applied on body) */
+  --font-heading:
+    var(--font-ibm-plex-sans), var(--font-roboto), var(--font-inter), sans-serif;
+  --font-sans: var(--font-inter), var(--font-roboto), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Scrollbar tokens */
+  --tf-scrollbar-size: 6px;
+  --tf-scrollbar-thumb: var(--tf-border-strong);
+  --tf-scrollbar-thumb-hover: var(--tf-text-muted);
+}
+
+.dark {
+  /* Shadcn Variables */
+  --background: oklch(0.147 0.004 49.3);
+  --foreground: oklch(0.986 0.002 67.8);
+  --card: oklch(0.214 0.009 43.1);
+  --card-foreground: oklch(0.986 0.002 67.8);
+  --popover: oklch(0.214 0.009 43.1);
+  --popover-foreground: oklch(0.986 0.002 67.8);
+  --primary: oklch(0.922 0.005 34.3);
+  --primary-foreground: oklch(0.214 0.009 43.1);
+  --secondary: oklch(0.268 0.011 36.5);
+  --secondary-foreground: oklch(0.986 0.002 67.8);
+  --muted: oklch(0.268 0.011 36.5);
+  --muted-foreground: oklch(0.714 0.014 41.2);
+  --accent: oklch(0.268 0.011 36.5);
+  --accent-foreground: oklch(0.986 0.002 67.8);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.547 0.021 43.1);
+  --chart-1: oklch(0.868 0.007 39.5);
+  --chart-2: oklch(0.547 0.021 43.1);
+  --chart-3: oklch(0.438 0.017 39.3);
+  --chart-4: oklch(0.367 0.016 35.7);
+  --chart-5: oklch(0.268 0.011 36.5);
+  --sidebar: oklch(0.214 0.009 43.1);
+  --sidebar-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-accent: oklch(0.268 0.011 36.5);
+  --sidebar-accent-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.547 0.021 43.1);
+
+  /* Trip Trails - DARK */
+
+  --tf-primary: #62b46d;
+  --tf-primary-hover: #7bc684;
+  --tf-primary-soft: rgba(98, 180, 109, 0.14);
+
+  --tf-accent: #d6b04a;
+  --tf-accent-hover: #e2bf66;
+  --tf-accent-soft: rgba(214, 176, 74, 0.12);
+
+  --tf-success: #4ade80;
+  --tf-success-soft: rgba(74, 222, 128, 0.12);
+
+  --tf-warning: #fbbf24;
+  --tf-warning-soft: rgba(251, 191, 36, 0.12);
+
+  --tf-danger: #f87171;
+  --tf-danger-soft: rgba(248, 113, 113, 0.12);
+
+  --tf-info: #60a5fa;
+  --tf-info-soft: rgba(96, 165, 250, 0.12);
+
+  /* Cards */
+
+  --tf-card-blue: rgba(96, 165, 250, 0.08);
+  --tf-card-teal: rgba(98, 180, 109, 0.08);
+  --tf-card-amber: rgba(214, 176, 74, 0.08);
+  --tf-card-violet: rgba(167, 139, 250, 0.08);
+  --tf-card-slate: rgba(148, 163, 184, 0.06);
+  --tf-card-coral: rgba(248, 113, 113, 0.08);
+
+  /* Surfaces */
+
+  --tf-bg: #0f1511;
+  --tf-surface: #18201a;
+  --tf-surface-2: #202b22;
+
+  --tf-border: rgba(255, 255, 255, 0.08);
+  --tf-border-strong: rgba(255, 255, 255, 0.15);
+
+  /* Typography */
+
+  --tf-text-primary: #f3f5f3;
+  --tf-text-secondary: #c3cbc4;
+  --tf-text-muted: #7c8a80;
+  --tf-text-inverse: #111827;
+
+  /* Sidebar */
+
+  --tf-sidebar-bg: #18201a;
+  --tf-sidebar-active: rgba(98, 180, 109, 0.14);
+  --tf-sidebar-text: #c3cbc4;
+  --tf-sidebar-active-text: #62b46d;
+  --tf-sidebar-accent: #62b46d;
+
+  --tf-header-bg: #18201a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tf-scrollbar-thumb) transparent;
+  }
+  body {
+    @apply bg-[var(--tf-bg)] text-tf-text-primary;
+  }
+  html {
+    @apply font-sans;
+  }
+
+  /* WebKit scrollbars */
+  ::-webkit-scrollbar {
+    width: var(--tf-scrollbar-size);
+    height: var(--tf-scrollbar-size);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--tf-scrollbar-thumb);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--tf-scrollbar-thumb-hover);
+  }
+}
+
+/* Radix ScrollArea — match global scrollbar */
+[data-slot="scroll-area-scrollbar"][data-orientation="vertical"] {
+  width: var(--tf-scrollbar-size) !important;
+  border: none !important;
+  background: transparent;
+  padding: 0;
+}
+[data-slot="scroll-area-scrollbar"][data-orientation="horizontal"] {
+  height: var(--tf-scrollbar-size) !important;
+  border: none !important;
+  background: transparent;
+  padding: 0;
+}
+[data-slot="scroll-area-thumb"] {
+  background: var(--tf-scrollbar-thumb) !important;
+  border-radius: 4px;
+}
+[data-slot="scroll-area-thumb"]:hover {
+  background: var(--tf-scrollbar-thumb-hover) !important;
+}
+
+.tf-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tf-scrollbar-thumb) transparent;
+}
+
+/* Typography Classes */
+.tf-display {
+  font: 700 48px/1.1 var(--font-heading);
+  letter-spacing: -0.02em;
+}
+.tf-h1 {
+  font: 700 32px/1.2 var(--font-heading);
+  letter-spacing: -0.015em;
+}
+.tf-h2 {
+  font: 700 24px/1.25 var(--font-heading);
+  letter-spacing: -0.01em;
+}
+.tf-h3 {
+  font: 600 20px/1.3 var(--font-heading);
+}
+.tf-h4 {
+  font: 600 16px/1.4 var(--font-heading);
+}
+.tf-body-lg {
+  font: 400 16px/1.6 var(--font-sans);
+}
+.tf-body {
+  font: 400 14px/1.6 var(--font-sans);
+}
+.tf-body-sm {
+  font: 400 13px/1.5 var(--font-sans);
+}
+.tf-caption {
+  font: 500 12px/1.4 var(--font-sans);
+  letter-spacing: 0.02em;
+}
+.tf-overline {
+  font: 600 11px/1.3 var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tf-mono {
+  font: 500 13px/1.5 var(--font-mono);
+}
+
+.tf-kpi-value {
+  font: 700 36px/1 var(--font-heading);
+  letter-spacing: -0.02em;
+}
+.tf-kpi-value-sm {
+  font: 700 28px/1 var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+/* Phone Input overrides to match TravelFlow theme */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  height: 2.5rem;
+  background: transparent;
+  border-radius: 0.5rem;
+}
+
+.PhoneInputCountry {
+  border: none;
+  border-right: 1px solid var(--tf-border);
+  background: transparent;
+  padding: 0 0.5rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.PhoneInputCountrySelect {
+  font-size: 0.875rem;
+  color: var(--tf-text-primary);
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 0.25rem;
+}
+
+.PhoneInputCountryIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+}
+
+.PhoneInputCountrySelectArrow {
+  color: var(--tf-text-muted);
+  margin-left: 0.125rem;
+}
+
+.PhoneInputInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.875rem;
+  padding: 0 0.75rem;
+  height: 100%;
+  color: var(--tf-text-primary);
+}
+
+.PhoneInputInput::placeholder {
+  color: var(--tf-text-muted);
+}
+
+/* Focus state on the container */
+.PhoneInput:focus-within {
+  outline: none;
+}
+
+/* Error state on wrapper */
+.phone-input-error .PhoneInput {
+  border-color: var(--tf-danger);
+}
+.phone-input-error .PhoneInput:focus-within {
+  box-shadow: 0 0 0 2px var(--tf-danger);
+}
