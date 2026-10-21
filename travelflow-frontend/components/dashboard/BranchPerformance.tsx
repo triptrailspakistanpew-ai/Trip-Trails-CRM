@@ -26,8 +26,18 @@ export function BranchPerformance({
   const activeBranchId = useBranchStore((state) => state.activeBranchId);
 
 
+  const fallbackBranch: BranchData = {
+    name: "Head Office",
+    code: "HO-01",
+    revenue: 0,
+    profit: 0,
+    expenses: 0,
+    staff: 1,
+    growth: 0,
+  };
+
   const branchList = useMemo(() => {
-    return data && data.length > 0 ? data : [];
+    return data && data.length > 0 ? data : [fallbackBranch];
   }, [data]);
 
   // Try to match active branch if possible, otherwise default to first branch
@@ -44,7 +54,7 @@ export function BranchPerformance({
 
   const [selectedIndex, setSelectedIndex] = useState<number>(initialIndex);
 
-  const selectedBranch = branchList[selectedIndex] || branchList[0] || defaultData[0];
+  const selectedBranch = branchList[selectedIndex] || branchList[0] || fallbackBranch;
 
   const profitMargin = useMemo(() => {
     if (!selectedBranch.revenue || selectedBranch.revenue === 0) return 0;
