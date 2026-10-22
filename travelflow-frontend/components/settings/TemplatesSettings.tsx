@@ -42,6 +42,7 @@ export function TemplatesSettings() {
     name: "",
     type: "quotation_notes" as TemplateType,
     content: "",
+    isDefault: false,
   });
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -62,13 +63,13 @@ export function TemplatesSettings() {
 
   const handleOpenCreate = () => {
     setEditingTemplate(null);
-    setFormData({ name: "", type: "quotation_notes", content: "" });
+    setFormData({ name: "", type: "quotation_notes", content: "", isDefault: false });
     setIsDrawerOpen(true);
   };
 
   const handleOpenEdit = (t: Template) => {
     setEditingTemplate(t);
-    setFormData({ name: t.name, type: t.type, content: t.content });
+    setFormData({ name: t.name, type: t.type, content: t.content, isDefault: !!t.isDefault });
     setIsDrawerOpen(true);
   };
 
@@ -115,6 +116,10 @@ export function TemplatesSettings() {
         return "Invoice Notes";
       case "invoice_terms":
         return "Invoice Terms";
+      case "booking_notes":
+        return "Booking Notes";
+      case "booking_terms":
+        return "Booking Terms";
       default:
         return type;
     }
@@ -126,7 +131,7 @@ export function TemplatesSettings() {
         <div>
           <h2 className="tf-h3 text-tf-text-primary">Global Templates</h2>
           <p className="tf-body-sm text-tf-text-secondary mt-1">
-            Manage reusable templates for notes and terms in quotations and invoices.
+            Manage reusable templates for notes and terms. Mark templates as default to auto-apply them.
           </p>
         </div>
         <Button onClick={handleOpenCreate} className="bg-tf-primary text-white hover:bg-tf-primary-hover">
@@ -145,17 +150,34 @@ export function TemplatesSettings() {
               <tr>
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Type</th>
+                <th className="px-6 py-4">Default</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-tf-border">
               {templates.map((t) => (
                 <tr key={t.id} className="hover:bg-tf-surface-hover/50">
-                  <td className="px-6 py-4 font-medium text-tf-text-primary">{t.name}</td>
+                  <td className="px-6 py-4 font-medium text-tf-text-primary">
+                    <div className="flex items-center gap-2">
+                      <span>{t.name}</span>
+                      {t.isDefault && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {getTypeLabel(t.type)}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {t.isDefault ? (
+                      <span className="text-xs font-medium text-emerald-600">Yes (Auto-applied)</span>
+                    ) : (
+                      <span className="text-xs text-tf-text-muted">No</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <Button
@@ -186,31 +208,36 @@ export function TemplatesSettings() {
             <DialogTitle>{editingTemplate ? "Edit Template" : "Create Template"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Template Name</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. Standard Terms"
-              />
+            <div className="space-y-2 flex justify-between gap-1">
+              <div className="w-full">
+                <Label>Template Name</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. Standard Terms"
+                />
+              </div>
+              <div >
+                <Label>Type</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(val: TemplateType) => setFormData({ ...formData, type: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quotation_notes">Quotation Notes</SelectItem>
+                    <SelectItem value="quotation_terms">Quotation Terms</SelectItem>
+                    <SelectItem value="invoice_notes">Invoice Notes</SelectItem>
+                    <SelectItem value="invoice_terms">Invoice Terms</SelectItem>
+                    <SelectItem value="booking_notes">Booking Notes</SelectItem>
+                    <SelectItem value="booking_terms">Booking Terms</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(val: TemplateType) => setFormData({ ...formData, type: val })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="quotation_notes">Quotation Notes</SelectItem>
-                  <SelectItem value="quotation_terms">Quotation Terms</SelectItem>
-                  <SelectItem value="invoice_notes">Invoice Notes</SelectItem>
-                  <SelectItem value="invoice_terms">Invoice Terms</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
             <div className="space-y-2">
               <Label>Content</Label>
               <Textarea
@@ -219,6 +246,18 @@ export function TemplatesSettings() {
                 placeholder="Enter template text here..."
                 rows={6}
               />
+            </div>
+            <div className="flex items-center gap-2 pt-2 border-t border-tf-border">
+              <input
+                type="checkbox"
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-tf-primary focus:ring-tf-primary cursor-pointer"
+              />
+              <Label htmlFor="isDefault" className="text-sm cursor-pointer select-none">
+                Set as default
+              </Label>
             </div>
           </div>
           <div className="flex justify-end gap-2">

@@ -30,7 +30,7 @@ export function Sidebar() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const router = useRouter();
   const { logout, user } = useAuthStore();
-  const { activeBranchId, setActiveBranchId, setActiveBranch } = useBranchStore();
+  const { activeBranchId, setActiveBranchId, setActiveBranch, activeCurrency } = useBranchStore();
 
   const userRole = user?.role?.toLowerCase();
   const isSuperAdmin = userRole === "admin" || userRole === "owner";
@@ -41,8 +41,12 @@ export function Sidebar() {
     }
   }, [isSuperAdmin]);
 
-  const logo =
-    resolvedTheme === "dark" ? appData["logo-light"] : appData["logo-dark"];
+  const isUaeBranch = activeCurrency === "AED";
+  const logo = isUaeBranch
+    ? "/assets/TTP-UAE-Logo.png"
+    : resolvedTheme === "dark"
+    ? appData["logo-light"]
+    : appData["logo-dark"];
 
   const displayName = user
     ? `${user.firstName} ${user.lastName}`.trim()

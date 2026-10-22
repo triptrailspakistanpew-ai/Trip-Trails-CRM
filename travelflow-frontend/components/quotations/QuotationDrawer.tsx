@@ -165,10 +165,20 @@ export function QuotationDrawer({
       ? getDefaultTaxesForCurrency(effCurr)
       : (initialValues?.taxes ?? quotationDefaultValues.taxes);
 
+    // Look for default templates if creating new and no notes/terms provided
+    const defaultNote = mode === "create" && !initialValues?.notes 
+      ? notesTemplates.find(t => t.isDefault)?.content || ""
+      : initialValues?.notes || "";
+    const defaultTerm = mode === "create" && !initialValues?.terms
+      ? termsTemplates.find(t => t.isDefault)?.content || ""
+      : initialValues?.terms || "";
+
     form.reset({
       ...getQuotationDefaultValues(effCurr),
       currency: effCurr,
       ...initialValues,
+      notes: defaultNote,
+      terms: defaultTerm,
       taxes: defTaxes,
     });
     // Pre-populate new customer fields when editing a quotation with deferred customer details
@@ -182,7 +192,7 @@ export function QuotationDrawer({
       setNewCustomer({ name: "", phone: "", email: "" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editingId, mode]);
+  }, [isOpen, editingId, mode, notesTemplates, termsTemplates]);
 
   const onSubmit = async (values: QuotationFormValues) => {
     if (isViewMode) return;

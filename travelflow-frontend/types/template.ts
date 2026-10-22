@@ -12,6 +12,7 @@ export interface Template {
   name: string;
   type: TemplateType;
   content: string;
+  isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +21,8 @@ export type CreateTemplatePayload = {
   name: string;
   type: TemplateType;
   content: string;
+  isDefault?: boolean;
 };
 
 export type UpdateTemplatePayload = Partial<CreateTemplatePayload>;
+

@@ -389,10 +389,15 @@ export function BookingDrawer({
       if (booking) {
         form.reset(mapBookingToForm(booking));
       } else {
+        const defaultNote = notesTemplates.find((t) => t.isDefault)?.content || "";
+        const defaultTerm = termsTemplates.find((t) => t.isDefault)?.content || "";
+
         form.reset({
           ...bookingDefaultValues,
           customerId: customers[0]?.id ?? "",
           departureDate: new Date(),
+          notes: defaultNote,
+          terms: defaultTerm,
         });
         setNewCustomer({
           firstName: "",
@@ -404,7 +409,7 @@ export function BookingDrawer({
         });
       }
     }
-  }, [isOpen, booking, customers, activeCurrency, form]);
+  }, [isOpen, booking, customers, activeCurrency, form, notesTemplates, termsTemplates]);
 
   const watchedServices = useWatch({ control: form.control, name: "services" }) || [];
   const selectedCustomerId = useWatch({ control: form.control, name: "customerId" });

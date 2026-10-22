@@ -10,7 +10,13 @@ type AgencyContext = {
 export async function getTemplates({ agencyId }: AgencyContext, type?: TemplateType) {
   const where: any = { agencyId, isDeleted: false };
   if (type) where.type = type;
-  return prisma.template.findMany({ where, orderBy: { name: "asc" } });
+  return (prisma.template as any).findMany({ 
+    where, 
+    orderBy: [
+      { isDefault: "desc" },
+      { name: "asc" }
+    ] 
+  });
 }
 
 export async function createTemplate({
@@ -18,12 +24,22 @@ export async function createTemplate({
   name,
   type,
   content,
-}: AgencyContext & { name: string; type: TemplateType; content: string }) {
+  isDefault = false,
+}: AgencyContext & { name: string; type: TemplateType; content: string; isDefault?: boolean }) {
   if (!name || !type || !content) {
     throw ApiError.badRequest("Name, type, and content are required");
   }
-  return prisma.template.create({
-    data: { agencyId, name, type, content },
+
+  // If this template is marked as default, unmark other defaults of the same type for this agency
+  if (isDefault) {
+    await (prisma.template as any).updateMany({
+      where: { agencyId, type, isDefault: true },
+      data: { isDefault: false },
+    });
+  }
+
+  return (prisma.template as any).create({
+    data: { agencyId, name, type, content, isDefault },
   });
 }
 
@@ -33,23 +49,34 @@ export async function updateTemplate({
   name,
   type,
   content,
+  isDefault,
 }: AgencyContext & {
   templateId: string;
   name?: string;
   type?: TemplateType;
   content?: string;
+  isDefault?: boolean;
 }) {
-  const template = await prisma.template.findFirst({
+  const template = await (prisma.template as any).findFirst({
     where: { id: templateId, agencyId, isDeleted: false },
   });
   if (!template) throw ApiError.notFound("Template not found");
 
-  return prisma.template.update({
+  const targetType = type || template.type;
+  if (isDefault) {
+    await (prisma.template as any).updateMany({
+      where: { agencyId, type: targetType, isDefault: true, id: { not: templateId } },
+      data: { isDefault: false },
+    });
+  }
+
+  return (prisma.template as any).update({
     where: { id: templateId },
     data: {
       ...(name !== undefined && { name }),
       ...(type !== undefined && { type }),
       ...(content !== undefined && { content }),
+      ...(isDefault !== undefined && { isDefault }),
     },
   });
 }

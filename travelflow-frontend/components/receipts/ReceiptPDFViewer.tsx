@@ -2,6 +2,7 @@
 
 import { Document, Page, Text, View, StyleSheet, Image, PDFViewer } from "@react-pdf/renderer";
 import { useEffect, useState } from "react";
+import { useBranchStore } from "@/store/branch.store";
 
 const THEME_COLOR = "#1a1b36"; 
 
@@ -237,6 +238,7 @@ const styles = StyleSheet.create({
 
 export default function ReceiptPDFViewer({ data }: { data: any }) {
   const [origin, setOrigin] = useState("");
+  const activeCurrency = useBranchStore((state) => state.activeCurrency);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -245,11 +247,35 @@ export default function ReceiptPDFViewer({ data }: { data: any }) {
   if (!origin) return null;
 
   const bgUrl = `${origin}/assets/invoice/triptrails-letter-head.png`;
+  const isUae = data?.currency === "AED" || activeCurrency === "AED";
+  const uaeLogoUrl = `${origin}/assets/TTP-UAE-Logo.png`;
 
   const Doc = () => (
     <Document title={`Payment-${data.paymentRef}`}>
       <Page size="A4" style={styles.page}>
         <Image src={bgUrl} style={styles.background} fixed />
+
+        {isUae && (
+          <View
+            style={{
+              position: "absolute",
+              top: 15,
+              left: "50%",
+              marginLeft: -80,
+              width: 160,
+              height: 90,
+              backgroundColor: "#ffffff",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            fixed
+          >
+            <Image
+              src={uaeLogoUrl}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </View>
+        )}
         
         <View style={styles.content}>
           {/* Payment Number */}

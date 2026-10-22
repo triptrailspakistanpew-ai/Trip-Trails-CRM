@@ -196,31 +196,79 @@ export default function InvoiceDetailPage() {
 
       {/* Services / Line Items Table */}
       <div className="bg-tf-surface rounded-xl border border-tf-border shadow-sm p-6 space-y-4">
-        <h3 className="text-base font-semibold text-tf-text-primary border-b border-tf-border pb-3">
-          Line Items
-        </h3>
+        <div className="flex items-center justify-between border-b border-tf-border pb-3">
+          <h3 className="text-base font-semibold text-tf-text-primary">
+            Tax Invoice Line Items & Travel Details
+          </h3>
+          <span className="text-xs bg-tf-surface-2 px-2.5 py-1 rounded text-tf-text-secondary border border-tf-border">
+            Mixed VAT Engine Active
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-tf-border text-left text-xs uppercase tracking-wider text-tf-text-muted">
-                <th className="py-2.5 px-3">Description</th>
+                <th className="py-2.5 px-3">Description & Travel Info</th>
+                <th className="py-2.5 px-3">Supply Mode</th>
                 <th className="py-2.5 px-3 text-center">Qty</th>
                 <th className="py-2.5 px-3 text-right">Unit Price ({currency})</th>
-                <th className="py-2.5 px-3 text-right">Amount ({currency})</th>
+                <th className="py-2.5 px-3 text-right">Net Base ({currency})</th>
+                <th className="py-2.5 px-3 text-center">VAT Rate</th>
+                <th className="py-2.5 px-3 text-right">VAT ({currency})</th>
+                <th className="py-2.5 px-3 text-right">Total ({currency})</th>
               </tr>
             </thead>
             <tbody>
-              {(invoice.items ?? []).map((item: any, idx: number) => (
-                <tr key={item.id || idx} className="border-b border-tf-border/50 hover:bg-tf-surface-2/50 transition-colors">
-                  <td className="py-3 px-3 font-medium text-tf-text-primary">{item.description}</td>
-                  <td className="py-3 px-3 text-center">{item.quantity}</td>
-                  <td className="py-3 px-3 text-right text-tf-text-secondary">{item.unitPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  <td className="py-3 px-3 text-right font-semibold text-tf-text-primary">{item.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                </tr>
-              ))}
+              {(invoice.items ?? []).map((item: any, idx: number) => {
+                const vatBadgeColor =
+                  item.vatCategory === "STANDARD"
+                    ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                    : item.vatCategory === "ZERO_RATED"
+                    ? "bg-green-500/10 text-green-500 border-green-500/20"
+                    : item.vatCategory === "EXEMPT"
+                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                    : "bg-purple-500/10 text-purple-500 border-purple-500/20";
+
+                return (
+                  <tr key={item.id || idx} className="border-b border-tf-border/50 hover:bg-tf-surface-2/50 transition-colors">
+                    <td className="py-3 px-3">
+                      <div className="font-medium text-tf-text-primary">{item.description}</div>
+                      {/* Linked Travel Details */}
+                      <div className="flex flex-wrap gap-2 mt-1 text-xs text-tf-text-muted">
+                        {item.pnr && <span className="bg-tf-surface-2 px-1.5 py-0.5 rounded">PNR: <span className="font-mono text-tf-text-primary">{item.pnr}</span></span>}
+                        {item.ticketNumber && <span className="bg-tf-surface-2 px-1.5 py-0.5 rounded">Tkt: <span className="font-mono text-tf-text-primary">{item.ticketNumber}</span></span>}
+                        {item.route && <span className="bg-tf-surface-2 px-1.5 py-0.5 rounded">Route: {item.route}</span>}
+                        {item.hotelName && <span className="bg-tf-surface-2 px-1.5 py-0.5 rounded">Hotel: {item.hotelName}</span>}
+                        {item.passengerNames && item.passengerNames.length > 0 && (
+                          <span className="bg-tf-surface-2 px-1.5 py-0.5 rounded">Pax: {item.passengerNames.join(", ")}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={`inline-block px-2 py-0.5 text-xs rounded border capitalize ${
+                        item.supplyRole === "agent" 
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20" 
+                          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                      }`}>
+                        {item.supplyRole === "agent" ? "Agent (Procured)" : "Principal (Direct)"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-center">{item.quantity}</td>
+                    <td className="py-3 px-3 text-right text-tf-text-secondary">{item.unitPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="py-3 px-3 text-right text-tf-text-secondary">{(item.netAmount || item.amount)?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="py-3 px-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded border ${vatBadgeColor}`}>
+                        {item.vatCategory === "STANDARD" ? `${item.vatRate || 5}%` : (item.vatCategory === "ZERO_RATED" ? "0%" : (item.vatCategory === "EXEMPT" ? "Exempt" : "Out of Scope"))}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right font-medium text-tf-text-secondary">{(item.vatAmount || 0)?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="py-3 px-3 text-right font-bold text-tf-text-primary">{(item.totalAmount || item.amount)?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                );
+              })}
               {(invoice.items ?? []).length === 0 && (
                 <tr>
-                  <td className="py-6 text-tf-text-muted text-center" colSpan={4}>
+                  <td className="py-6 text-tf-text-muted text-center" colSpan={8}>
                     No line items found.
                   </td>
                 </tr>
@@ -229,20 +277,62 @@ export default function InvoiceDetailPage() {
           </table>
         </div>
 
-        {/* Totals Summary */}
-        <div className="flex justify-end pt-4 border-t border-tf-border">
-          <div className="w-72 space-y-2 text-sm">
-            <div className="flex justify-between text-tf-text-secondary">
-              <span>Subtotal:</span>
-              <span className="font-medium">{currency} {invoice.subtotal?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        {/* VAT Breakdown & Totals Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-tf-border">
+          {/* Statutory VAT Category Breakdown */}
+          <div className="bg-tf-surface-2/40 p-4 rounded-lg border border-tf-border text-xs space-y-2">
+            <h4 className="font-semibold uppercase tracking-wider text-tf-text-muted">
+              VAT Category Breakdown (FTA Compliant)
+            </h4>
+            <div className="space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-tf-text-secondary">Standard Rated (5%):</span>
+                <span className="font-medium text-tf-text-primary">
+                  Base: {currency} {(invoice.vatBreakdown?.standardRated?.base || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Tax: {currency} {(invoice.vatBreakdown?.standardRated?.vat || (invoice.tax || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-tf-text-secondary">Zero-Rated (0% Int. Travel):</span>
+                <span className="font-medium text-tf-text-primary">
+                  Base: {currency} {(invoice.vatBreakdown?.zeroRated?.base || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Tax: 0.00
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-tf-text-secondary">Exempt Supplies:</span>
+                <span className="font-medium text-tf-text-primary">
+                  Base: {currency} {(invoice.vatBreakdown?.exempt?.base || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Tax: 0.00
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-tf-text-secondary">Out of Scope / Agency Disbursements:</span>
+                <span className="font-medium text-tf-text-primary">
+                  Base: {currency} {(invoice.vatBreakdown?.outOfScope?.base || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} | Tax: 0.00
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between text-tf-text-secondary">
-              <span>Output Tax (VAT):</span>
-              <span className="font-medium text-tf-accent">{currency} {invoice.tax?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex justify-between text-base font-bold text-tf-text-primary pt-2 border-t border-tf-border">
-              <span>Total Invoice Amount:</span>
-              <span className="text-tf-success">{currency} {invoice.total?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+
+          {/* Totals Summary */}
+          <div className="flex flex-col justify-end items-end space-y-2 text-sm">
+            <div className="w-72 space-y-2">
+              <div className="flex justify-between text-tf-text-secondary">
+                <span>Subtotal (Gross):</span>
+                <span className="font-medium">{currency} {invoice.subtotal?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              {invoice.discount > 0 && (
+                <div className="flex justify-between text-tf-danger">
+                  <span>Discount Before Tax:</span>
+                  <span className="font-medium">-{currency} {invoice.discount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-tf-text-secondary">
+                <span>Total Output VAT:</span>
+                <span className="font-medium text-tf-accent">{currency} {invoice.tax?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-base font-bold text-tf-text-primary pt-2 border-t border-tf-border">
+                <span>Total Invoice Amount:</span>
+                <span className="text-tf-success">{currency} {invoice.total?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
         </div>

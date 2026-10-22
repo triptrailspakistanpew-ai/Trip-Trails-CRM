@@ -19,6 +19,7 @@ export const createTemplate = asyncHandler(async (req: Request, res: Response) =
     name: req.body.name,
     type: req.body.type,
     content: req.body.content,
+    isDefault: req.body.isDefault,
   });
   res.status(201).json({ data: template });
 });
@@ -31,6 +32,7 @@ export const updateTemplate = asyncHandler(async (req: Request, res: Response) =
     name: req.body.name,
     type: req.body.type,
     content: req.body.content,
+    isDefault: req.body.isDefault,
   });
   res.json({ data: template });
 });

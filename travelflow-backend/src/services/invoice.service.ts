@@ -37,9 +37,22 @@ export async function getInvoice(ctx: AgencyContext, id: string) {
   const invoice = await prisma.invoice.findFirst({
     where: { agencyId: ctx.agencyId, id },
     include: {
-      customer: { select: { firstName: true, lastName: true, email: true, phone: true, companyName: true, address: true, city: true, country: true } },
-      booking: { select: { bookingRef: true, departureDate: true, returnDate: true, title: true } },
-      items: true,
+      customer: { select: { firstName: true, lastName: true, email: true, phone: true, companyName: true, address: true, city: true, country: true, taxNumber: true } },
+      booking: { 
+        select: { 
+          bookingRef: true, 
+          departureDate: true, 
+          returnDate: true, 
+          title: true, 
+          travelers: {
+            where: { isDeleted: false },
+            select: { firstName: true, lastName: true, type: true, passportNumber: true }
+          }
+        } 
+      },
+      items: {
+        orderBy: { createdAt: "asc" }
+      },
     },
   });
 
@@ -63,7 +76,13 @@ export async function getInvoice(ctx: AgencyContext, id: string) {
 }
 
 export async function generateInvoiceFromBooking(ctx: AgencyContext, bookingId: string) {
-  const booking = await prisma.booking.findFirst({ where: { id: bookingId, agencyId: ctx.agencyId, isDeleted: false } });
+  const booking = await prisma.booking.findFirst({ 
+    where: { id: bookingId, agencyId: ctx.agencyId, isDeleted: false },
+    include: {
+      travelers: { where: { isDeleted: false } },
+      customer: true
+    }
+  });
   if (!booking) throw ApiError.notFound("Booking");
 
   // Prevent duplicate active invoice for the same booking
@@ -81,32 +100,132 @@ export async function generateInvoiceFromBooking(ctx: AgencyContext, bookingId: 
 
   const services = await prisma.bookingService.findMany({
     where: { bookingId: booking.id, agencyId: ctx.agencyId, isDeleted: false },
+    include: { supplier: true }
   });
 
-  const subtotal = services.reduce((sum, s) => sum + s.sellingPrice, 0);
-  const totalTax = services.reduce((sum, s) => sum + (s.taxAmount || 0), 0);
+  // Calculate Mixed VAT and items
+  const passengerNames = (booking.travelers || []).map(t => `${t.firstName} ${t.lastName}`.trim()).filter(Boolean);
+
+  let subtotal = 0;
+  let totalDiscount = 0;
+  let totalTaxable = 0;
+  let totalTax = 0;
+
+  const vatBreakdown = {
+    standardRated: { base: 0, vat: 0, rate: 5 },
+    zeroRated: { base: 0, vat: 0 },
+    exempt: { base: 0, vat: 0 },
+    outOfScope: { base: 0, vat: 0 },
+  };
+
+  const invoiceLinesData = services.map((s) => {
+    const qty = s.quantity > 0 ? s.quantity : 1;
+    const grossAmount = Number(s.sellingPrice || 0);
+    const unitPrice = qty > 0 ? grossAmount / qty : grossAmount;
+    const lineDiscount = 0;
+    const netAmount = grossAmount - lineDiscount;
+
+    // Map service tax treatment to standard 4 VAT categories
+    let vatCategory = "STANDARD";
+    let vatRate = 5;
+
+    const treatment = (s.taxTreatment || "").toUpperCase();
+    if (treatment === "ZERO_RATED" || s.serviceCategory === "flight") {
+      vatCategory = "ZERO_RATED";
+      vatRate = 0;
+    } else if (treatment === "EXEMPT") {
+      vatCategory = "EXEMPT";
+      vatRate = 0;
+    } else if (treatment === "NO_VAT" || treatment === "OUT_OF_SCOPE") {
+      vatCategory = "OUT_OF_SCOPE";
+      vatRate = 0;
+    } else {
+      vatCategory = "STANDARD";
+      vatRate = s.vatRate !== undefined && s.vatRate !== null ? Number(s.vatRate) : 5;
+    }
+
+    const vatAmount = Number(s.taxAmount || (netAmount * (vatRate / 100)));
+    const totalAmount = netAmount + vatAmount;
+
+    subtotal += grossAmount;
+    totalDiscount += lineDiscount;
+    totalTaxable += netAmount;
+    totalTax += vatAmount;
+
+    if (vatCategory === "STANDARD") {
+      vatBreakdown.standardRated.base += netAmount;
+      vatBreakdown.standardRated.vat += vatAmount;
+    } else if (vatCategory === "ZERO_RATED") {
+      vatBreakdown.zeroRated.base += netAmount;
+    } else if (vatCategory === "EXEMPT") {
+      vatBreakdown.exempt.base += netAmount;
+    } else {
+      vatBreakdown.outOfScope.base += netAmount;
+    }
+
+    const svcDetails: any = s.serviceDetails || {};
+    const supplyRole = (s.serviceCategory === "flight" || s.serviceCategory === "visa") ? "agent" : "principal";
+
+    return {
+      agencyId: ctx.agencyId,
+      serviceCategory: s.serviceCategory || "other",
+      description: `${s.title} (${s.serviceCategory})`,
+      supplyRole,
+      quantity: qty,
+      unitPrice,
+      amount: grossAmount,
+      discountAmount: lineDiscount,
+      netAmount,
+      vatCategory,
+      vatRate,
+      vatAmount,
+      totalAmount,
+      passengerNames,
+      pnr: svcDetails.pnr || null,
+      ticketNumber: svcDetails.ticketNumber || null,
+      route: svcDetails.route || (svcDetails.departure && svcDetails.arrival ? `${svcDetails.departure} - ${svcDetails.arrival}` : null),
+      travelStartDate: svcDetails.travelDate || booking.departureDate || null,
+      travelEndDate: svcDetails.returnDate || booking.returnDate || null,
+      hotelName: (svcDetails.hotelName && svcDetails.hotelName !== s.title) ? svcDetails.hotelName : null,
+      supplierRef: s.supplierRef || (s.supplier ? s.supplier.name : null),
+      supplierCost: s.costPrice || null, // hidden internally
+      isServiceFee: false,
+    };
+  });
+
   const invoiceRef = await generateRef("INV", ctx.agencyId);
+
+  const [defaultInvoiceNotes, defaultInvoiceTerms] = await Promise.all([
+    (prisma.template as any).findFirst({
+      where: { agencyId: ctx.agencyId, type: "invoice_notes", isDefault: true, isDeleted: false },
+    }),
+    (prisma.template as any).findFirst({
+      where: { agencyId: ctx.agencyId, type: "invoice_terms", isDefault: true, isDeleted: false },
+    }),
+  ]);
 
   const invoice = await prisma.invoice.create({
     data: {
       agencyId: ctx.agencyId,
       branchId: booking.branchId,
       invoiceRef,
+      invoiceType: "TAX_INVOICE",
       bookingId: booking.id,
       customerId: booking.customerId,
+      supplyDate: booking.departureDate || new Date(),
+      customerTrn: (booking.customer as any)?.taxNumber || (booking.customer as any)?.taxId || null,
       subtotal,
+      discount: totalDiscount,
+      taxableAmount: totalTaxable,
       tax: totalTax,
-      total: subtotal + totalTax,
+      total: totalTaxable + totalTax,
+      vatBreakdown: vatBreakdown as any,
+      notes: booking.notes || defaultInvoiceNotes?.content || null,
+      terms: booking.terms || defaultInvoiceTerms?.content || null,
       status: booking.paymentStatus === "paid" ? "paid" : "sent",
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       items: {
-        create: services.map((s) => ({
-          agencyId: ctx.agencyId,
-          description: `${s.title} (${s.serviceCategory})`,
-          quantity: s.quantity,
-          unitPrice: s.quantity > 0 ? s.sellingPrice / s.quantity : s.sellingPrice,
-          amount: s.sellingPrice,
-        })),
+        create: invoiceLinesData,
       },
     },
   });

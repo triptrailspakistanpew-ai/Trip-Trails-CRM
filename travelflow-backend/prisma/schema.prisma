@@ -857,24 +857,36 @@ model SupplierPaymentAllocation {
 // ==========================================
 
 model Invoice {
-  id         String    @id @default(uuid()) @db.Uuid
-  agencyId   String    @db.Uuid
-  branchId   String?   @db.Uuid
-  invoiceRef String
-  bookingId  String?   @db.Uuid
-  customerId String    @db.Uuid
-  currency   String    @default("PKR")
-  exchangeRate Float   @default(1)
-  subtotal   Float
-  tax        Float
-  total      Float
-  status     String    @default("draft") // draft, sent, paid, overdue, cancelled
-  dueDate    DateTime?
-  paidAt     DateTime?
-  notes      String?
-  terms      String?
-  isDeleted  Boolean   @default(false)
-  deletedAt  DateTime?
+  id           String    @id @default(uuid()) @db.Uuid
+  agencyId     String    @db.Uuid
+  branchId     String?   @db.Uuid
+  invoiceRef   String
+  invoiceType  String    @default("TAX_INVOICE") // TAX_INVOICE, SIMPLIFIED_TAX_INVOICE
+  bookingId    String?   @db.Uuid
+  customerId   String    @db.Uuid
+  currency     String    @default("PKR")
+  exchangeRate Float     @default(1)
+  
+  supplyDate   DateTime? // Date of supply for tax point
+  isLocked     Boolean   @default(false) // Locked once sent/issued to prevent unlinked edits
+  customerTrn  String?   // Buyer TRN for B2B tax compliance
+  agencyTrn    String?   // Seller TRN
+
+  subtotal     Float     // Gross before discounts
+  discount     Float     @default(0) // Total discount before tax
+  taxableAmount Float    @default(0) // Subtotal minus discount
+  tax          Float     // Total VAT amount
+  total        Float     // Total including VAT
+  
+  vatBreakdown Json?     // JSON breakdown: standard, zero_rated, exempt, out_of_scope
+
+  status       String    @default("draft") // draft, sent, paid, overdue, cancelled
+  dueDate      DateTime?
+  paidAt       DateTime?
+  notes        String?
+  terms        String?
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -897,13 +909,41 @@ model Invoice {
 }
 
 model InvoiceLine {
-  id          String @id @default(uuid()) @db.Uuid
-  agencyId    String @db.Uuid
-  invoiceId   String @db.Uuid
-  description String
-  quantity    Int    @default(1)
-  unitPrice   Float
-  amount      Float
+  id              String   @id @default(uuid()) @db.Uuid
+  agencyId        String   @db.Uuid
+  invoiceId       String   @db.Uuid
+  serviceCategory String   @default("other") // flight, hotel, transfer, visa, fee, insurance, package, other
+  description     String
+  supplyRole      String   @default("agent") // "agent" (procured / disbursement collection) | "principal" (selling as principal)
+  
+  // Pricing & Tax Calculation
+  quantity        Int      @default(1)
+  unitPrice       Float
+  amount          Float    // quantity * unitPrice (gross)
+  discountAmount  Float    @default(0)
+  netAmount       Float    @default(0) // amount - discountAmount (tax base)
+
+  vatCategory     String   @default("STANDARD") // STANDARD, ZERO_RATED, EXEMPT, OUT_OF_SCOPE
+  vatRate         Float    @default(5)          // percentage e.g. 5, 0
+  vatAmount       Float    @default(0)
+  totalAmount     Float    @default(0)          // netAmount + vatAmount
+
+  // Linked Travel Details (internal costs hidden from customer)
+  passengerNames  String[] @default([])
+  pnr             String?
+  ticketNumber    String?
+  route           String?
+  travelStartDate DateTime?
+  travelEndDate   DateTime?
+  hotelName       String?
+  supplierRef     String?
+  supplierCost    Float?   // INTERNAL ONLY: hidden from print / PDF
+
+  // Service Fee Relationships
+  isServiceFee    Boolean  @default(false)
+  feeType         String?  // "fixed" | "percentage"
+  feeBasis        String?  // "base_fare" | "total_ticket" | "supplier_cost"
+  parentLineId    String?  // references parent ticket/hotel line if applicable
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1110,8 +1150,9 @@ model Template {
   id        String    @id @default(uuid()) @db.Uuid
   agencyId  String    @db.Uuid
   name      String
-  type      String // quotation_notes, quotation_terms, invoice_notes, invoice_terms
+  type      String // quotation_notes, quotation_terms, invoice_notes, invoice_terms, booking_notes, booking_terms
   content   String
+  isDefault Boolean   @default(false)
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
@@ -1124,6 +1165,7 @@ model Template {
   bookings   Booking[]   @relation("BookingTermsTemplate")
 
   @@index([agencyId])
+  @@index([agencyId, type, isDefault])
   @@index([agencyId, isDeleted])
 }
 

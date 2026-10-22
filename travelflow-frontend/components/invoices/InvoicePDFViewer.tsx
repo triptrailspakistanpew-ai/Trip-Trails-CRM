@@ -2,6 +2,7 @@
 
 import { Document, Page, Text, View, StyleSheet, Image, PDFViewer } from "@react-pdf/renderer";
 import { useEffect, useState } from "react";
+import { useBranchStore } from "@/store/branch.store";
 
 const THEME_COLOR = "#1a1b36";
 
@@ -92,59 +93,116 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     backgroundColor: THEME_COLOR,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    alignItems: "center",
   },
   tableColHeaderLeft: {
-    fontSize: 10,
+    fontSize: 7.5,
     fontWeight: "bold",
     color: "#fff",
     textTransform: "uppercase",
-    flex: 1,
-    letterSpacing: 2,
+    flex: 2.2,
+    letterSpacing: 0.5,
   },
   tableColHeaderCenter: {
-    fontSize: 10,
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: "#fff",
+    textTransform: "uppercase",
+    width: 30,
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  tableColHeaderPrice: {
+    fontSize: 7.5,
     fontWeight: "bold",
     color: "#fff",
     textTransform: "uppercase",
     width: 60,
-    textAlign: "center",
-    letterSpacing: 2,
+    textAlign: "right",
+    paddingRight: 6,
+    letterSpacing: 0.5,
   },
-  tableColHeaderRight: {
-    fontSize: 10,
+  tableColHeaderTax: {
+    fontSize: 7.5,
     fontWeight: "bold",
     color: "#fff",
     textTransform: "uppercase",
-    width: 100,
+    width: 48,
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  tableColHeaderVat: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: "#fff",
+    textTransform: "uppercase",
+    width: 50,
     textAlign: "right",
-    letterSpacing: 2,
+    paddingRight: 4,
+    letterSpacing: 0.5,
+  },
+  tableColHeaderTotal: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: "#fff",
+    textTransform: "uppercase",
+    width: 60,
+    textAlign: "right",
+    letterSpacing: 0.5,
   },
   tableRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    alignItems: "center",
   },
   tableCellLeft: {
-    fontSize: 9,
+    fontSize: 8,
     color: "#333",
     fontWeight: "bold",
-    flex: 1,
+    flex: 2.2,
+  },
+  tableCellSubtext: {
+    fontSize: 7,
+    color: "#777",
+    marginTop: 2,
   },
   tableCellCenter: {
-    fontSize: 9,
+    fontSize: 8,
     color: "#333",
-    width: 60,
+    width: 30,
     textAlign: "center",
   },
-  tableCellRight: {
-    fontSize: 9,
+  tableCellPrice: {
+    fontSize: 8,
     color: "#333",
-    width: 100,
+    width: 60,
     textAlign: "right",
+    paddingRight: 6,
+  },
+  tableCellTax: {
+    fontSize: 8,
+    color: "#444",
+    width: 48,
+    textAlign: "center",
+  },
+  tableCellVat: {
+    fontSize: 8,
+    color: "#333",
+    width: 50,
+    textAlign: "right",
+    paddingRight: 4,
+  },
+  tableCellTotal: {
+    fontSize: 8,
+    color: "#333",
+    width: 60,
+    textAlign: "right",
+    fontWeight: "bold",
   },
 
   // Totals Section
@@ -237,6 +295,7 @@ const styles = StyleSheet.create({
 
 export default function InvoicePDFViewer({ data }: { data: any }) {
   const [origin, setOrigin] = useState("");
+  const activeCurrency = useBranchStore((state) => state.activeCurrency);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -245,11 +304,36 @@ export default function InvoicePDFViewer({ data }: { data: any }) {
   if (!origin) return null;
 
   const bgUrl = `${origin}/assets/invoice/triptrails-letter-head.png`;
+  const isUae = data?.currency === "AED" || activeCurrency === "AED";
+  const uaeLogoUrl = `${origin}/assets/TTP-UAE-Logo.png`;
 
   const Doc = () => (
     <Document title={`Tax-Invoice-${data.invoiceRef}`}>
       <Page size="A4" style={styles.page}>
         <Image src={bgUrl} style={styles.background} fixed />
+
+        {/* UAE Logo Header overlay when in UAE branch / AED */}
+        {isUae && (
+          <View
+            style={{
+              position: "absolute",
+              top: 15,
+              left: "50%",
+              marginLeft: -80,
+              width: 160,
+              height: 90,
+              backgroundColor: "#ffffff",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            fixed
+          >
+            <Image
+              src={uaeLogoUrl}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </View>
+        )}
 
         <View style={styles.content}>
           {/* Invoice Number */}
@@ -353,34 +437,98 @@ export default function InvoicePDFViewer({ data }: { data: any }) {
           {/* Services Table */}
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <Text style={styles.tableColHeaderLeft}>Description</Text>
+              <Text style={styles.tableColHeaderLeft}>Description & Details</Text>
               <Text style={styles.tableColHeaderCenter}>Qty</Text>
-              <Text style={styles.tableColHeaderRight}>Unit Price</Text>
-              <Text style={styles.tableColHeaderRight}>Amount</Text>
+              <Text style={styles.tableColHeaderPrice}>Net Price</Text>
+              <Text style={styles.tableColHeaderTax}>VAT Rate</Text>
+              <Text style={styles.tableColHeaderVat}>VAT</Text>
+              <Text style={styles.tableColHeaderTotal}>Total</Text>
             </View>
 
-            {(data.items || []).map((item: any, idx: number) => (
-              <View key={idx} style={styles.tableRow}>
-                <Text style={styles.tableCellLeft}>
-                  {item.description}
-                </Text>
-                <Text style={styles.tableCellCenter}>
-                  {item.quantity}
-                </Text>
-                <Text style={styles.tableCellRight}>
-                  {item.unitPrice?.toLocaleString()}
-                </Text>
-                <Text style={styles.tableCellRight}>
-                  {item.amount?.toLocaleString()}
-                </Text>
-              </View>
-            ))}
+            {(data.items || []).map((item: any, idx: number) => {
+              const vatLabel =
+                item.vatCategory === "STANDARD"
+                  ? `${item.vatRate || 5}%`
+                  : item.vatCategory === "ZERO_RATED"
+                  ? "0%"
+                  : item.vatCategory === "EXEMPT"
+                  ? "Exempt"
+                  : "Out of Scope";
+
+              // Filter out hotelName if already present in description
+              const showHotel = item.hotelName && !item.description?.toLowerCase().includes(item.hotelName.toLowerCase());
+              const subDetails = [
+                item.pnr ? `PNR: ${item.pnr}` : null,
+                item.ticketNumber ? `Tkt: ${item.ticketNumber}` : null,
+                item.route ? `Route: ${item.route}` : null,
+                showHotel ? `Hotel: ${item.hotelName}` : null,
+              ].filter(Boolean);
+
+              return (
+                <View key={idx} style={styles.tableRow}>
+                  <View style={{ flex: 2.2, paddingRight: 4, flexDirection: "column" }}>
+                    <Text style={styles.tableCellLeft}>
+                      {item.description}
+                    </Text>
+                    {subDetails.length > 0 ? (
+                      <Text style={styles.tableCellSubtext}>
+                        {subDetails.join(" | ")}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.tableCellCenter}>
+                    {item.quantity}
+                  </Text>
+                  <Text style={styles.tableCellPrice}>
+                    {(item.netAmount || item.amount)?.toLocaleString()}
+                  </Text>
+                  <Text style={styles.tableCellTax}>
+                    {vatLabel}
+                  </Text>
+                  <Text style={styles.tableCellVat}>
+                    {(item.vatAmount || 0)?.toLocaleString()}
+                  </Text>
+                  <Text style={styles.tableCellTotal}>
+                    {(item.totalAmount || item.amount)?.toLocaleString()}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
 
           {/* Totals & Notes Section */}
           <View style={styles.totalsContainer}>
-            {/* Notes (Left) */}
+            {/* Notes & VAT Breakdown (Left) */}
             <View style={styles.termsSection}>
+              {/* Statutory VAT Breakdown (Clean & Only Shown when Relevant) */}
+              {data.vatBreakdown && (data.vatBreakdown.standardRated?.base > 0 || data.vatBreakdown.zeroRated?.base > 0 || data.vatBreakdown.exempt?.base > 0) && (
+                <View style={{ marginBottom: 12, padding: 8, backgroundColor: "#fafafb", borderWidth: 1, borderColor: "#e2e2ea", borderRadius: 3 }}>
+                  <Text style={{ fontSize: 7.5, fontWeight: "bold", color: THEME_COLOR, marginBottom: 3, letterSpacing: 0.5 }}>
+                    VAT CATEGORY BREAKDOWN
+                  </Text>
+                  {data.vatBreakdown.standardRated?.base > 0 && (
+                    <Text style={{ fontSize: 7, color: "#444", marginBottom: 1.5 }}>
+                      • Standard (5%): Base {data.currency || "PKR"} {data.vatBreakdown.standardRated.base.toLocaleString()} | Tax {data.currency || "PKR"} {(data.vatBreakdown.standardRated.vat || 0).toLocaleString()}
+                    </Text>
+                  )}
+                  {data.vatBreakdown.zeroRated?.base > 0 && (
+                    <Text style={{ fontSize: 7, color: "#444", marginBottom: 1.5 }}>
+                      • Zero-Rated (0% Int. Travel): Base {data.currency || "PKR"} {data.vatBreakdown.zeroRated.base.toLocaleString()} | Tax 0.00
+                    </Text>
+                  )}
+                  {data.vatBreakdown.exempt?.base > 0 && (
+                    <Text style={{ fontSize: 7, color: "#444", marginBottom: 1.5 }}>
+                      • Exempt Supplies: Base {data.currency || "PKR"} {data.vatBreakdown.exempt.base.toLocaleString()} | Tax 0.00
+                    </Text>
+                  )}
+                  {data.vatBreakdown.outOfScope?.base > 0 && (
+                    <Text style={{ fontSize: 7, color: "#444", marginBottom: 1.5 }}>
+                      • Out of Scope Disbursements: Base {data.currency || "PKR"} {data.vatBreakdown.outOfScope.base.toLocaleString()} | Tax 0.00
+                    </Text>
+                  )}
+                </View>
+              )}
+
               {data.notes && (
                 <View>
                   <Text style={styles.termsTitle}>Notes</Text>
@@ -404,15 +552,24 @@ export default function InvoicePDFViewer({ data }: { data: any }) {
                 </Text>
               </View>
 
+              {data.discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Discount :</Text>
+                  <Text style={styles.summaryValue}>
+                    -{data.currency || "PKR"} {data.discount?.toLocaleString()}
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tax :</Text>
+                <Text style={styles.summaryLabel}>Total Output Tax :</Text>
                 <Text style={styles.summaryValue}>
                   {data.currency || "PKR"} {data.tax?.toLocaleString()}
                 </Text>
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total :</Text>
+                <Text style={styles.summaryLabel}>Total Invoice Amount :</Text>
                 <Text style={styles.summaryValue}>
                   {data.currency || "PKR"} {data.total?.toLocaleString()}
                 </Text>
